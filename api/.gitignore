@@ -1,0 +1,13 @@
+.env
+
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.venv/
+
+temp_*.pdf
+highlighted_*.pdf
+
+.DS_Store
