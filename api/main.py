@@ -1,10 +1,11 @@
+import base64
 import os
 import shutil
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import JSONResponse
 
 from core import extract_sentences, highlight_sentences
 
@@ -41,15 +42,22 @@ async def process_pdf(
         highlight_sentences(temp_input, temp_output, sentences)
         os.remove(temp_input)
 
-        return FileResponse(
-            temp_output,
-            media_type="application/pdf",
-            filename=f"highlighted_{mode}.pdf",
-        )
+        with open(temp_output, "rb") as f:
+            pdf_base64 = base64.b64encode(f.read()).decode("utf-8")
+        os.remove(temp_output)
+
+        return JSONResponse(content={
+            "filename": f"highlighted_{mode}.pdf",
+            "pdf_base64": pdf_base64,
+            "total_sentences": len(sentences),
+            "sentences": sentences,
+        })
 
     except Exception as exc:
         if os.path.exists(temp_input):
             os.remove(temp_input)
+        if os.path.exists(temp_output):
+            os.remove(temp_output)
         raise HTTPException(status_code=500, detail=str(exc))
 
 
