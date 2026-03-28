@@ -1,4 +1,4 @@
-# Smart Highlighter
+# Smart PDF Highlighter
 
 ## Overview
 
