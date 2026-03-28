@@ -1,14 +1,15 @@
 import base64
 import os
 import tempfile
+import traceback
 from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 
+# Import core modules
 from core import extract_sentences, highlight_sentences
 
 load_dotenv()
@@ -16,34 +17,33 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 
 app = FastAPI(title="Smart Highlighter API")
 
+# ── CORS CONFIGURATION (CRITICAL FOR VERCEL) ─────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Allows Vercel to communicate with this API
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["*"],  # Allows POST, GET, OPTIONS, etc.
     allow_headers=["*"],
 )
 
-# ── Serve the client folder as static files ──────────────────────────────────
-# This means opening http://localhost:8000 in your browser is all you need.
-# No separate file server, no mixed-content errors.
-CLIENT_DIR = Path(__file__).parent.parent / "client"
-if CLIENT_DIR.exists():
-    app.mount("/static", StaticFiles(directory=str(CLIENT_DIR)), name="static")
+# ── HEALTH CHECK ENDPOINT ────────────────────────────────────────────────
+@app.get("/")
+async def root():
+    return {
+        "status": "🚀 API is LIVE and running perfectly!",
+        "cors": "Enabled for all origins",
+        "message": "Send a POST request to /process-pdf to use the engine."
+    }
 
-    @app.get("/")
-    async def serve_ui():
-        return FileResponse(str(CLIENT_DIR / "index.html"))
-
-
-# ── API endpoint ─────────────────────────────────────────────────────────────
+# ── API ENDPOINT ─────────────────────────────────────────────────────────
 @app.post("/process-pdf")
 async def process_pdf(
     mode: str = Form("study"),
     file: UploadFile = File(...),
 ):
     if not API_KEY:
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY not set in .env")
+        print("❌ ERROR: GEMINI_API_KEY is missing!")
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY not set in environment variables")
 
     fd_in, temp_input = tempfile.mkstemp(suffix=".pdf")
     fd_out, temp_output = tempfile.mkstemp(suffix=".pdf")
@@ -51,10 +51,18 @@ async def process_pdf(
     os.close(fd_out)
 
     try:
+        print(f"📥 Received file: {file.filename} | Mode: {mode}")
+        
         with open(temp_input, "wb") as buffer:
             buffer.write(await file.read())
 
+        print("🧠 Extracting sentences via Gemini...")
         sentences = extract_sentences(API_KEY, temp_input, mode)
+        
+        if not sentences:
+            print("⚠️ Warning: No sentences extracted by Gemini.")
+
+        print("🖍️ Highlighting sentences in PDF...")
         match_results = highlight_sentences(temp_input, temp_output, sentences)
 
         with open(temp_output, "rb") as f:
@@ -62,6 +70,8 @@ async def process_pdf(
 
         highlighted_count = sum(1 for r in match_results if r["highlighted"])
         not_found_count = len(match_results) - highlighted_count
+
+        print(f"✅ Success! Highlighted {highlighted_count} sentences.")
 
         return JSONResponse(content={
             "filename": f"highlighted_{mode}.pdf",
@@ -76,9 +86,9 @@ async def process_pdf(
         })
 
     except Exception as exc:
-        import traceback
-        traceback.print_exc()          # prints full traceback to terminal
-        raise HTTPException(status_code=500, detail=str(exc))
+        print("❌ SERVER ERROR OCCURRED:")
+        traceback.print_exc()  
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(exc)}")
 
     finally:
         if os.path.exists(temp_input):
@@ -89,5 +99,5 @@ async def process_pdf(
 
 if __name__ == "__main__":
     import uvicorn
-    print("\n✅  Smart Highlighter running → http://localhost:8000\n")
+    print("\n✅ Smart Highlighter running → http://0.0.0.0:8000\n")
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
