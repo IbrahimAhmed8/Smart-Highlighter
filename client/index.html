@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart AI Highlighter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Satoshi', sans-serif; background-color: #F3F4F6; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
+        .mode-selected { border-color: #3b82f6 !important; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2); }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden text-gray-800">
+
+    <aside class="w-64 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 z-20">
+        <div class="h-16 flex items-center px-6 border-b border-gray-50/50">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
+                    SH
+                </div>
+                <span class="font-bold text-lg tracking-tight">Smart Highlight</span>
+            </div>
+        </div>
+        
+        <nav class="flex-1 px-3 mt-4 space-y-1 overflow-y-auto">
+            <button onclick="resetApp()" class="w-full flex items-center gap-3 px-3 py-2 bg-blue-600 text-white rounded-lg group shadow-sm shadow-blue-200 hover:bg-blue-700 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                <span class="text-sm font-medium">New Analysis</span>
+            </button>
+        </nav>
+        
+        <div class="p-4 border-t border-gray-200">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-gray-900 flex items-center justify-center font-bold text-white">US</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 truncate">User</p>
+                    <p class="text-xs text-green-500 font-bold truncate">● Online</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 bg-white m-2 rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden">
+        
+        <header class="h-16 flex items-center justify-between px-8 border-b border-gray-100 flex-shrink-0">
+            <h2 class="text-lg font-bold text-gray-900" id="header-title">AI Analyzer</h2>
+            <div id="status-badge" class="hidden px-3 py-1 bg-green-50 text-green-600 rounded-full text-xs font-bold border border-green-200">
+                Analysis Complete
+            </div>
+        </header>
+
+        <div id="workspace" class="flex-1 flex flex-col items-center justify-center p-8 overflow-y-auto w-full relative">
+            
+            <div id="welcome-screen" class="w-full max-w-3xl">
+                <div class="text-center mb-10">
+                    <h1 class="text-4xl font-bold text-gray-900 mb-3 tracking-tight">Select a Mode & Attach PDF</h1>
+                    <p class="text-gray-500 text-lg">Choose how Gemini should analyze your document.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mb-8">
+                    <button onclick="selectMode('study', this)" class="mode-card mode-selected group p-5 bg-white border-2 border-blue-500 rounded-2xl text-left hover:shadow-md transition-all duration-200">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 text-xl">📚</div>
+                        </div>
+                        <h3 class="font-bold text-gray-900 mb-1">Study Mode</h3>
+                        <p class="text-xs text-gray-500 leading-relaxed">Extracts key definitions, concepts, and formulas.</p>
+                    </button>
+
+                    <button onclick="selectMode('cyber', this)" class="mode-card group p-5 bg-white border-2 border-gray-100 rounded-2xl text-left hover:border-gray-300 hover:shadow-md transition-all duration-200">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center text-green-400 text-xl">🛡️</div>
+                        </div>
+                        <h3 class="font-bold text-gray-900 mb-1">Cybersecurity</h3>
+                        <p class="text-xs text-gray-500 leading-relaxed">Finds vulnerabilities, CVSS, and remediation steps.</p>
+                    </button>
+
+                    <button onclick="selectMode('code', this)" class="mode-card group p-5 bg-white border-2 border-gray-100 rounded-2xl text-left hover:border-gray-300 hover:shadow-md transition-all duration-200">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 text-xl">💻</div>
+                        </div>
+                        <h3 class="font-bold text-gray-900 mb-1">Code Analysis</h3>
+                        <p class="text-xs text-gray-500 leading-relaxed">Identifies functions, core logic, and bug-prone areas.</p>
+                    </button>
+
+                    <button onclick="selectMode('medical', this)" class="mode-card group p-5 bg-white border-2 border-gray-100 rounded-2xl text-left hover:border-gray-300 hover:shadow-md transition-all duration-200">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="w-10 h-10 rounded-xl bg-pink-100 flex items-center justify-center text-pink-600 text-xl">⚕️</div>
+                        </div>
+                        <h3 class="font-bold text-gray-900 mb-1">Medical</h3>
+                        <p class="text-xs text-gray-500 leading-relaxed">Highlights symptoms, diagnostics, and meds.</p>
+                    </button>
+                </div>
+            </div>
+
+            <div id="loading-screen" class="hidden flex-col items-center justify-center h-full">
+                <svg class="animate-spin h-12 w-12 text-blue-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <h2 class="text-xl font-bold text-gray-800">Reading & Highlighting...</h2>
+                <p class="text-sm text-gray-500 mt-2">Gemini is analyzing the document. This may take a few seconds.</p>
+            </div>
+
+            <div id="result-container" class="hidden w-full h-full flex-col md:flex-row gap-6 pb-20">
+                
+                <div class="w-full md:w-1/3 h-full bg-gray-50 rounded-xl border border-gray-200 flex flex-col overflow-hidden shadow-inner">
+                    <div class="bg-white px-5 py-4 border-b border-gray-200 flex items-center justify-between z-10 sticky top-0 shadow-sm">
+                        <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2">
+                            <span>✨</span> Extracted Insights
+                        </h3>
+                        <span id="sentence-count-badge" class="text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-bold">0</span>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-5">
+                        <ol id="extracted-sentences-list" class="space-y-4 text-sm text-gray-800 list-decimal list-outside ml-4 marker:text-blue-500 marker:font-bold">
+                            </ol>
+                    </div>
+                </div>
+
+                <iframe id="pdf-viewer" class="w-full md:w-2/3 h-full rounded-xl border border-gray-200 shadow-inner" src=""></iframe>
+            </div>
+
+        </div>
+
+        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-4xl px-6">
+            <div class="relative bg-white border border-gray-200 rounded-2xl shadow-2xl p-3 flex items-center gap-3">
+                <input type="file" id="file-upload" accept="application/pdf" class="hidden">
+                <button onclick="document.getElementById('file-upload').click()" class="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-xl hover:bg-gray-800 text-sm font-semibold transition-colors shadow-md focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
+                    </svg>
+                    Attach PDF
+                </button>
+                <div id="file-name" class="flex-1 px-3 text-sm text-gray-400 font-medium truncate">No file attached yet...</div>
+            </div>
+        </div>
+    </main>
+
+    <aside class="w-80 bg-white border-l border-gray-200 flex flex-col flex-shrink-0 z-20 hidden lg:flex">
+         <div class="h-16 flex items-center justify-between px-6 border-b border-gray-50/50">
+            <h3 class="font-bold text-sm text-gray-900">Recent Highlights</h3>
+         </div>
+         <div class="p-4 space-y-3 overflow-y-auto" id="history-list">
+             <div id="empty-history" class="p-3 bg-gray-50 rounded-lg border border-gray-100 text-center text-sm text-gray-400 mt-10">
+                 Your processed PDFs will show here
+             </div>
+         </div>
+    </aside>
+
+    <script>
+        let currentMode = 'study'; 
+        let historyStore = {};
+
+        function selectMode(mode, element) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-card').forEach(card => {
+                card.classList.remove('mode-selected', 'border-blue-500');
+                card.classList.add('border-gray-100');
+            });
+            element.classList.add('mode-selected', 'border-blue-500');
+            element.classList.remove('border-gray-100');
+        }
+
+        function renderSentences(sentences, count, matchResults) {
+            const listEl = document.getElementById('extracted-sentences-list');
+            listEl.innerHTML = '';
+            document.getElementById('sentence-count-badge').textContent = count;
+
+            const matchMap = {};
+            if (matchResults) matchResults.forEach(r => { matchMap[r.sentence] = r.highlighted; });
+
+            sentences.forEach(sentence => {
+                const isHighlighted = matchResults ? matchMap[sentence] !== false : true;
+                const li = document.createElement('li');
+                li.className = "pl-2 leading-relaxed border-b border-gray-100 pb-3 last:border-0";
+                const badge = isHighlighted
+                    ? '<span class="inline-block ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded bg-yellow-100 text-yellow-700 align-middle">✦ highlighted</span>'
+                    : '<span class="inline-block ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded bg-gray-100 text-gray-400 align-middle">~ not found</span>';
+                li.innerHTML = '<span>' + sentence + '</span>' + badge;
+                listEl.appendChild(li);
+            });
+
+            const existing = document.getElementById('match-summary');
+            if (existing) existing.remove();
+            if (matchResults) {
+                const highlighted = matchResults.filter(r => r.highlighted).length;
+                const notFound = matchResults.length - highlighted;
+                const banner = document.createElement('div');
+                banner.id = 'match-summary';
+                banner.className = 'mb-4 px-3 py-2 rounded-lg text-xs font-medium flex gap-3 bg-white border border-gray-100 shadow-sm';
+                banner.innerHTML = '<span class="text-yellow-600">✦ ' + highlighted + ' highlighted</span>'
+                    + (notFound > 0 ? '<span class="text-gray-400">~ ' + notFound + ' not located in PDF</span>' : '');
+                listEl.parentElement.insertBefore(banner, listEl);
+            }
+        }
+
+        // Handle "New Analysis" Button
+        function resetApp() {
+            document.getElementById('welcome-screen').classList.remove('hidden');
+            document.getElementById('result-container').classList.add('hidden');
+            document.getElementById('result-container').classList.remove('flex');
+            document.getElementById('status-badge').classList.add('hidden');
+            document.getElementById('file-upload').value = '';
+            document.getElementById('file-name').textContent = 'No file attached yet...';
+            document.getElementById('file-name').classList.remove('text-gray-900');
+            document.getElementById('header-title').textContent = 'AI Analyzer';
+        }
+
+        function loadFromHistory(id) {
+            const session = historyStore[id];
+            if(session) {
+                document.getElementById('welcome-screen').classList.add('hidden');
+                document.getElementById('loading-screen').classList.add('hidden');
+                document.getElementById('loading-screen').classList.remove('flex');
+                
+                const viewer = document.getElementById('pdf-viewer');
+                viewer.src = session.url;
+                
+                renderSentences(session.sentences, session.count, session.matchResults);
+                
+                document.getElementById('result-container').classList.remove('hidden');
+                document.getElementById('result-container').classList.add('flex');
+                
+                document.getElementById('header-title').textContent = session.filename;
+                document.getElementById('status-badge').classList.remove('hidden');
+            }
+        }
+
+        document.getElementById('file-upload').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+
+            document.getElementById('file-name').textContent = file.name;
+            document.getElementById('file-name').classList.add('text-gray-900');
+            document.getElementById('status-badge').classList.add('hidden');
+            
+            document.getElementById('welcome-screen').classList.add('hidden');
+            document.getElementById('result-container').classList.add('hidden');
+            document.getElementById('result-container').classList.remove('flex');
+            document.getElementById('loading-screen').classList.remove('hidden');
+            document.getElementById('loading-screen').classList.add('flex');
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('mode', currentMode); 
+
+            try {
+                const response = await fetch('/process-pdf', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const byteCharacters = atob(data.pdf_base64);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], {type: 'application/pdf'});
+                const pdfUrl = URL.createObjectURL(blob);
+
+                const sessionId = Date.now().toString();
+                historyStore[sessionId] = {
+                    url: pdfUrl,
+                    sentences: data.sentences,
+                    count: data.total_sentences,
+                    filename: data.filename,
+                    mode: currentMode,
+                    matchResults: data.match_results
+                };
+
+                document.getElementById('loading-screen').classList.add('hidden');
+                document.getElementById('loading-screen').classList.remove('flex');
+                
+                document.getElementById('pdf-viewer').src = pdfUrl;
+                renderSentences(data.sentences, data.total_sentences, data.match_results);
+
+                document.getElementById('result-container').classList.remove('hidden');
+                document.getElementById('result-container').classList.add('flex');
+
+                document.getElementById('header-title').textContent = data.filename;
+                document.getElementById('status-badge').classList.remove('hidden');
+
+                const historyList = document.getElementById('history-list');
+                const emptyMsg = document.getElementById('empty-history');
+                if(emptyMsg) emptyMsg.remove();
+
+                historyList.insertAdjacentHTML('afterbegin', `
+                    <div onclick="loadFromHistory('${sessionId}')" class="p-3 bg-white hover:bg-blue-50 rounded-xl border border-gray-200 shadow-sm cursor-pointer transition-all hover:border-blue-300">
+                        <h4 class="text-sm font-bold text-gray-800 truncate mb-1" title="${file.name}">${file.name}</h4>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-[10px] text-blue-600 bg-blue-100 px-2 py-0.5 rounded-md uppercase font-bold tracking-wider">${currentMode}</span>
+                            <span class="text-[11px] text-gray-500 font-medium">🔥 ${data.total_sentences} Insights</span>
+                        </div>
+                    </div>
+                `);
+
+            } catch (error) {
+                console.error('Error processing PDF:', error);
+                const errMsg = error.message || 'Unknown error';
+                alert('Connection Failed!\n\nMake sure you started the server:\n  cd api\n  python main.py\n\nThen open: http://localhost:8000\n\nDo NOT open index.html directly in the browser.\n\nError: ' + errMsg);
+                
+                document.getElementById('loading-screen').classList.add('hidden');
+                document.getElementById('loading-screen').classList.remove('flex');
+                document.getElementById('welcome-screen').classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
