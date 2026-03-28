@@ -110,3 +110,6 @@ The application is designed to be deployable on platforms like Hugging Face Spac
 3.  Upload a PDF document.
 4.  The application will process the PDF, extract key sentences, and display the highlighted PDF along with a list of extracted sentences.
 5.  You can then download the highlighted PDF or view previous analyses from the history.
+
+
+## Try it out: https://smart-highlighter.vercel.app/
