@@ -159,17 +159,37 @@
             element.classList.remove('border-gray-100');
         }
 
-        function renderSentences(sentences, count) {
+        function renderSentences(sentences, count, matchResults) {
             const listEl = document.getElementById('extracted-sentences-list');
             listEl.innerHTML = ''; 
             document.getElementById('sentence-count-badge').textContent = count;
-            
+
+            const matchMap = {};
+            if (matchResults) matchResults.forEach(r => { matchMap[r.sentence] = r.highlighted; });
+
             sentences.forEach(sentence => {
+                const isHighlighted = matchResults ? matchMap[sentence] !== false : true;
                 const li = document.createElement('li');
-                li.className = "pl-1 md:pl-2 leading-relaxed border-b border-gray-100 pb-2 md:pb-3 last:border-0";
-                li.textContent = sentence;
+                li.className = "pl-2 leading-relaxed border-b border-gray-100 pb-3 last:border-0";
+                const badge = isHighlighted
+                    ? '<span class="inline-block ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded bg-yellow-100 text-yellow-700 align-middle">✦ highlighted</span>'
+                    : '<span class="inline-block ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded bg-gray-100 text-gray-400 align-middle">~ not found</span>';
+                li.innerHTML = '<span>' + sentence + '</span>' + badge;
                 listEl.appendChild(li);
             });
+
+            const existing = document.getElementById('match-summary');
+            if (existing) existing.remove();
+            if (matchResults) {
+                const highlighted = matchResults.filter(r => r.highlighted).length;
+                const notFound = matchResults.length - highlighted;
+                const banner = document.createElement('div');
+                banner.id = 'match-summary';
+                banner.className = 'mb-4 px-3 py-2 rounded-lg text-xs font-medium flex gap-3 bg-white border border-gray-100 shadow-sm';
+                banner.innerHTML = '<span class="text-yellow-600">✦ ' + highlighted + ' highlighted</span>'
+                    + (notFound > 0 ? '<span class="text-gray-400">~ ' + notFound + ' not located in PDF</span>' : '');
+                listEl.parentElement.insertBefore(banner, listEl);
+            }
         }
 
         function resetApp() {
@@ -190,8 +210,10 @@
                 document.getElementById('loading-screen').classList.add('hidden');
                 document.getElementById('loading-screen').classList.remove('flex');
                 
-                document.getElementById('pdf-viewer').src = session.url;
-                renderSentences(session.sentences, session.count);
+                const viewer = document.getElementById('pdf-viewer');
+                viewer.src = session.url;
+                
+                renderSentences(session.sentences, session.count, session.matchResults);
                 
                 document.getElementById('result-container').classList.remove('hidden');
                 document.getElementById('result-container').classList.add('flex', 'flex-col', 'lg:flex-row');
@@ -220,8 +242,7 @@
             formData.append('mode', currentMode); 
 
             try {
-                // BACK4APP LIVE URL LINK
-                const response = await fetch('https://smartapi-3w2s912b.b4a.run/process-pdf', {
+                const response = await fetch('/process-pdf', {
                     method: 'POST',
                     body: formData
                 });
@@ -240,14 +261,19 @@
 
                 const sessionId = Date.now().toString();
                 historyStore[sessionId] = {
-                    url: pdfUrl, sentences: data.sentences, count: data.total_sentences, filename: data.filename, mode: currentMode
+                    url: pdfUrl,
+                    sentences: data.sentences,
+                    count: data.total_sentences,
+                    filename: data.filename,
+                    mode: currentMode,
+                    matchResults: data.match_results
                 };
 
                 document.getElementById('loading-screen').classList.add('hidden');
                 document.getElementById('loading-screen').classList.remove('flex');
                 
                 document.getElementById('pdf-viewer').src = pdfUrl;
-                renderSentences(data.sentences, data.total_sentences);
+                renderSentences(data.sentences, data.total_sentences, data.match_results);
 
                 document.getElementById('result-container').classList.remove('hidden');
                 document.getElementById('result-container').classList.add('flex', 'flex-col', 'lg:flex-row');
@@ -270,8 +296,10 @@
                 `);
 
             } catch (error) {
-                console.error(error);
-                alert('Connection Failed! The API server might be sleeping or unreachable.');
+                console.error('Error processing PDF:', error);
+                const errMsg = error.message || 'Unknown error';
+                alert('Connection Failed!\n\nMake sure you started the server:\n  cd api\n  python main.py\n\nThen open: http://localhost:8000\n\nDo NOT open index.html directly in the browser.\n\nError: ' + errMsg);
+                
                 document.getElementById('loading-screen').classList.add('hidden');
                 document.getElementById('loading-screen').classList.remove('flex');
                 document.getElementById('welcome-screen').classList.remove('hidden');
