@@ -26,7 +26,7 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"status": "🚀 API is LIVE on Hugging Face Spaces!"}
+    return {"status": "API is LIVE on Hugging Face Spaces!"}
 
 @app.post("/process-pdf")
 async def process_pdf(
